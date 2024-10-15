@@ -150,7 +150,7 @@ white_wine |>
 ```{r}
 #| eval: false
 white_wine |> 
-  select(where(\(x) is.numeric(x) & (max(x) < 5)))
+  select(where(\(x) is.numeric(x) & (max(x) < 5))) ##anonymous function, for each column of the dataframe (list) -> equivalent of lapply
 ```
 
 ### Selecting rows
@@ -205,4 +205,45 @@ white_wine |>
   scale_color_viridis_c() +
   facet_wrap(vars(`alcohol category`))
 ```
+
+## Aggregation functions
+Summary functions = turn a possibly long vector into a single value (still a vector!)
+
+- standard stats : `max()`, `min()`, `mean()`, `median()`, `sd()`
+- logical op : `any()`, `all()`
+- counts and ranks : `n()`
+
+### Simple summary use
+Based on the `summarise()` or into a `mutate()` call. 
+
+```{r}
+white_wine |>
+  summarise(
+    median(alcohol),
+    sd(alcohol)
+  )
+```
+```{r}
+white_wine |>
+  select(alcohol) |>
+  mutate(a_m_median = alcohol - median(alcohol),
+         .keep = "none")
+```
+```{r}
+white_wine |>
+  select(alcohol) |>
+  mutate(na = (alcohol - mean(alcohol))/sd(alcohol),
+         na_r = (alcohol - median(alcohol))/sd(alcohol),
+         .keep = "none")
+```
+```{r}
+white_wine |>
+  summarise(mean(alcohol),
+           sd(alcohol),
+           median(alcohol),
+           IQR(alcohol))
+```
+
+
+
 
