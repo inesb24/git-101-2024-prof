@@ -243,7 +243,34 @@ white_wine |>
            median(alcohol),
            IQR(alcohol))
 ```
+### More complex summary functions
+Essentially `quantile()`
 
+```{r}
+quantile(white_wine$`residual sugar`)
+```
+```{r}
+white_wine |>
+  summarise(quantile(`residual sugar`))
+```
+```{r}
+white_wine |>
+  reframe(quantile(`residual sugar`),
+          mean(`residual sugar`)) ##reframe removes the other functionalities of summary() that does not work well with quantile()
+```
+```{r}
+sugar_stats <- white_wine |>
+  summarise(list(quantile(`residual sugar`)),
+            mean(`residual sugar`))
+```
+
+### Group by
+#### Introduction
+```{r}
+white_wine |>
+  summarise(median(`residual sugar`),
+            .by = quality)
+```
 
 
 
