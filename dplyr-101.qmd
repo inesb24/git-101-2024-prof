@@ -271,6 +271,86 @@ white_wine |>
   summarise(median(`residual sugar`),
             .by = quality)
 ```
+#### Quantizing continuous variables
+```{r}
+white_wine |>
+  summarise(median(`residual sugar`),
+            n(),
+            .by = quality) |>
+  arrange(quality)
+```
+
+```{r}
+white_wine |>
+  mutate(ha = alcohol >= 12.5) |>
+  summarise(median(`residual sugar`), 
+            n(), ## number of obs in each group
+            .by = ha) ##grouping over ha
+```
+
+```{r}
+white_wine |>
+  mutate(alc_class = cut(alcohol, breaks=c(7, 9, 10, 12, 13, 15),
+                  ordered_result = TRUE)) |>
+  summarise(median(`residual sugar`),
+            n(), 
+            .by = alc_class)|
+```
+
+```{r}
+white_wine |>
+  mutate(alc_class = cut(alcohol, breaks=c(7, 9, 10, 12, 13, 15),
+                  ordered_result = TRUE)) |>
+  ggplot(aes(x = alc_class)) +
+  geom_bar()
+```
+
+
+```{r}
+white_wine |>
+  mutate(alc_class = cut(alcohol, breaks=c(7, 9, 10, 12, 13, 15),
+                  ordered_result = TRUE)) |>
+  ggplot(aes(x = alc_class, fill = quality)) +
+  geom_bar(position = "fill")
+```
+
+
+```{r}
+white_wine |>
+  ggplot(aes(x = alcohol, y = quality)) +
+  geom_boxplot()
+```
+```{r}
+alcohol_quantiles <-
+  white_wine |>
+  pull(alcohol) |> ## select a column in the dataframe and transform into vector
+  quantile(probs = seq(0, 1, by = 0.2)) ## create quantiles
+alcohol_quantiles
+```
+```{r}
+alcohol_quantiles[1] <- alcohol_quantiles[1] - 1 ## remove 1 to the first quantile
+  white_wine |>
+  pull(alcohol) |>
+  quantile(probs = seq(0, 1, by = 0.2))
+alcohol_quantiles 
+```
+
+```{r}
+white_wine |>
+  mutate(alc_class = cut(alcohol, breaks=alcohol_quantiles,
+                  ordered_result = TRUE)) |>
+  ggplot(aes(x = alc_class)) +
+  geom_bar()
+```
+```{r}
+white_wine |>
+  mutate(alc_class = cut(alcohol, breaks=alcohol_quantiles,
+                  ordered_result = TRUE)) |>
+  ggplot(aes(x = alc_class, fill = quality)) +
+  geom_bar(position = "fill")
+```
+Compared to the first graphical representation of alcohol class, this shows the correlation between quality and alcohol class better, in the sense that there is a clear increase of higher quality alcohols as we increase the alcohol tenure. 
+We can refine our analysis by breaking up the alchol classes in smaller quantiles (by 0.1 for example).
 
 
 
