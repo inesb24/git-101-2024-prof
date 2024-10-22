@@ -389,9 +389,152 @@ white_wine |>
 white_wine |>
   mutate(avg_alc_quality = mean(alcohol), .by = quality)
 ```
+#### `group_by()`
+
+```{r}
+diamonds |>
+  group_by(cut) |>
+  summarise(median(price))
+```
+
+```{r}
+diamonds |>
+  group_by(cut, clarity) ## number of group = product of the number of group of cut and of clarity
+```
+
+```{r}
+diamonds |>
+  group_by(cut, clarity) |> ## two layers of grouping 
+  summarise(median(price)) ## one layer gets eaten by the summarise function (default reaction)
+```
+
+```{r}
+diamonds |>
+  group_by(cut, clarity) |>
+  summarise(median(price), .groups = "drop_last") |> 
+  arrange(cut, clarity)
+```
+
+```{r}
+diamonds |>
+  summarise(median(price), .by = c(cut, clarity)) |>
+  arrange(cut, clarity) ## result not sorted, not grouped
+```
 
 
+```{r}
+diamonds |>
+  summarise(price_mc = median(price), .by = c(cut, clarity)) |>
+  summarise(mean(price_mc), .by = cut) |>
+  arrange(cut=) 
+```
+```{r}
+diamonds |> 
+  group_by(cut, color) |>
+  summarise(N = n(), .groups = "drop_last") |> ## marginal counts grouped by cut, then sorted by color
+```
+```{r}
+diamonds |> 
+  group_by(cut, color) |>
+  summarise(N = n(), .groups = "drop_last") |> ## marginal counts grouped by cut, then sorted by color
+  summarise(sum(N)) ## summing the colors inside the cut
+```
+
+```{r}
+diamonds |> 
+  group_by(cut, color) |>
+  summarise(N = n(), .groups = "drop_last") |> ## counting observations in each of the groups
+  mutate(prob = N/sum(N)) |> ## conditional probabilities of having an x color in a y cut
+  ungroup() 
+```
+```{r}
+diamonds |> 
+  summarise(N = n(), .by = c(cut, color)) |> 
+  mutate(prob = N/sum(N), .by = cut) |> 
+  arrange(cut, color) 
+```
+
+## Tidying data
+
+```{r}
+library(tidyr)
+```
+
+### Long to wide table (pivoting)
+
+```{r}
+color_given_cut <-
+  diamonds |> 
+  group_by(cut, color) |>
+  summarise(N = n(), .groups = "drop_last") |> ## counting observations in each of the groups
+  mutate(prob = N/sum(N)) |> ## conditional probabilities of having an x color in a y cut
+  ungroup() 
+```
+
+```{r}
+color_given_cut |>
+  select(!N) |> ## not selecting N
+  pivot_wider(id_cols = cut, names_from = color, values_from = prob)
+## object = cut (series of rown apply to the object "Good", "Fair" etc.)
+## variable name = color (name of the variables)
+## value of the variable = prob
+```
+### Wide to long table (pivoting)
+
+```{r}
+data("world_bank_pop")
+```
+
+```{r}
+world_bank_pop |>
+  filter(indicator == "SP.POP.TOTL") |>
+  select(!indicator) |> ## useless now that one indicator has been selected
+  pivot_longer(!country) |> ## pivot over everything except country
+  filter(country == "ESP") |>
+  ggplot(aes(x = as.numeric(name), y = value)) +
+  geom_line() +
+  theme(legend.position = "none")
+```
+```{r}
+world_bank_pop |>
+  filter(indicator == "SP.POP.TOTL") |>
+  filter(country %in% c("ESP", "FRA")) |>
+  select(!indicator) |>
+  pivot_longer(!country) ## except the column used to identify the variable
+```
+```{r}
+world_bank_pop |>
+  filter(country %in% c("ESP", "FRA")) |>
+  pivot_longer(!country & !indicator) ## except the column used to identify the variable
+```
 
 
-
+```{r}
+world_bank_pop |>
+  filter(indicator == "SP.POP.TOTL") |>
+  select(!indicator) |> 
+  pivot_longer(!country, 
+               names_to = "year", 
+               names_transform = as.integer,
+               values_to = "total population") |>
+  ggplot(aes(x = year, y = `total population`, color = country)) +
+  geom_line() +
+  theme(legend.position = "none") +
+  scale_y_continuous(transform = "log10")
+```
+```{r}
+world_bank_pop |>
+  filter(indicator == "SP.POP.TOTL") |>
+  select(!indicator) |> 
+  filter(!is.na(`2000`)) |>
+  slice_sample(n = 10, weight_by = `2000`) |> ## weight_by gives different weights in the selection of the sample
+  pivot_longer(!country, 
+               names_to = "year", 
+               names_transform = as.integer,
+               values_to = "total population") |>
+  ggplot(aes(x = year, y = `total population`, color = country)) +
+  geom_line() +
+  theme(legend.position = "right") +
+  scale_y_continuous(transform = "log10")
+```
 
