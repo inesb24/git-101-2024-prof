@@ -626,6 +626,81 @@ pid_nb <- products |>
 
 Is `ProductID` a valid **primary key** : `r pid_nb` == `nrow(products)`.
 
+### Foreign keys
+```{r}
+library(readr)
+categories <- read_csv(here("northwind", "Categories.csv"),
+                       col_types = "icc-")
+```
+The `CategoryID` column is the **primary key** of the `categories` table. The `products` table has a `CategoryID` column which is liely to be a **foreign key** referencing the **primary key** of `categories`.
+
+### Join
+A **join** operation is a way to combine two tables inro a single one by selecting a subset of the cartesian product (produit cartésien) between the two tables. 
+
+The **natural join** selects only pairs of tuples (rows) that have the same values on columns that have the same name. `inner_join` in dplyr implements by default the natural join.
+
+```{r}
+library(dplyr)
+p_c <- products |>
+  inner_join(categories) ## it is not necessary pertinent to join the two tables because of redundant info
+```
+Let's break the CategoryID column in products and try to join nevertheless.
+
+```{r}
+broken_pc <- products |>
+  mutate(CategoryID = CategoryID -1) |>
+  inner_join(categories)
+```
+In this case, as expected, tupples with no match are removed from the result. We verified that `CategoryID` is a foreign key by counting the number of tupples in the result : `r nrow(p_c) = nrow(products)`.
+
+### Application example
+We want a simple table with all the categories (given by their name) and for each category the number of products.
 
 
+#### Broken solution
+```{r}
+products |>
+  summarise("Number of products" = n(), .by = CategoryID)
+```
+
+### Summarise and then join
+
+```{r}
+products |>
+  summarise("Number of products" = n(), .by = CategoryID) |>
+  inner_join(categories) |>
+  select(!Description) |>
+  select(!CategoryID) |>
+  arrange(CategoryName) |>
+  rename(Category = CategoryName) |>
+  relocate(Category)
+```
+
+#### Join then summarise
+```{r}
+products |>
+  select(CategoryID) |>
+  inner_join(categories |> select(Category = CategoryName, CategoryID), 
+             by = join_by(CategoryID)) |>
+  summarise("Number of products"=n(), .by = Category) |>
+  arrange(Category)
+```
+### Application example 2
+
+```{r}
+suppliers <- vroom(here("northwind", "Suppliers.csv"))
+```
+
+We want a table of countries tha associate a country to the number of products that are supplied by suppliers of this country.
+
+#### Join then summarise
+
+```{r}
+products |>
+  select(SupplierID) |>
+  inner_join(suppliers |>
+               select(SupplierID, Country),
+             by = join_by(SupplierID)) |>
+  summarise("Number of products" = n(), .by = Country)
+```
 
