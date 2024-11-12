@@ -475,7 +475,7 @@ color_given_cut <-
 color_given_cut |>
   select(!N) |> ## not selecting N
   pivot_wider(id_cols = cut, names_from = color, values_from = prob)
-## object = cut (series of rown apply to the object "Good", "Fair" etc.)
+## object = cut (series of rows apply to the object "Good", "Fair" etc.)
 ## variable name = color (name of the variables)
 ## value of the variable = prob
 ```
@@ -537,4 +537,95 @@ world_bank_pop |>
   theme(legend.position = "right") +
   scale_y_continuous(transform = "log10")
 ```
+## Nesting
+
+```{r}
+class(diamonds)
+```
+```{r}
+df_list <- tibble(x = 1:3, 
+                  y = letters[1:3],
+                  z = list(c(1,2), c("Alice", "Bob", "Charlie"), 3)) ## list of vectors
+df_list
+```
+```{r}
+daf_list <- data.frame(x = 1:3, 
+                  y = letters[1:3],
+                  z = I(list(c(1,2), c("Alice", "Bob", "Charlie"), 3))) 
+## it does not work well with the data.frame function so switch to tibble
+daf_list
+```
+
+### Linear models
+
+In the case of the diamond database, we could try to predict the effect of the characteristics of a diamond on its price. 
+
+```{r}
+diamonds_price_lm <-
+  lm(price ~ ., data = diamonds)
+## the dot . means that price will depend on all the other variables
+summary(diamonds_price_lm)
+```
+```{r}
+plot(diamonds_price_lm)
+```
+
+```{r}
+library(tidyr)
+library(dplyr)
+diamonds_price_cut_lm <-
+  diamonds |>
+  nest(.by = cut) |>
+  mutate(sub_lm = lapply(data, \(x) lm(price ~., data = x)))  ## applying a local function to each element of the list data
+```
+
+```{r}
+library(broom)
+diamonds_price_cut_lm |>
+  mutate(tlm = lapply(sub_lm, tidy))
+## take the dataframe, arrange cut pieces into smaller nested dataframes
+```
+
+```{r}
+diamonds |>
+  nest(.by = cut) |>
+  unnest(data)
+```
+
+```{r}
+diamonds_price_cut_lm |>
+  select(cut, tlm) |> ## only unnesting the coefficients
+  unnest(tlm)
+```
+```{r}
+diamonds_price_cut_lm |>
+  select(cut, tlm) |> ## only unnesting the coefficients
+  unnest(tlm) |>
+  filter(p.value < 0.01) >
+  select(cut, term, estimate) |>
+  pivot_wider(names_from = term, values_from = estimate)
+```
+
+## Multiple tables
+### Primary key
+
+```{r}
+products <- vroom(here("northwind", "Products.csv"))
+## primary key = 
+## foreign keys = id for the other datasets
+```
+The `ProductID` column is the **primary key** of the `products` table meaning that the values are unique. 
+
+```{r}
+pid_nb <- products |>
+  select(ProductID) |>
+  filter(!is.na(ProductID) & !is.nan(ProductID)) |> ## remove missing values and values that are not numerical
+  distinct(ProductID) |>
+  nrow() 
+```
+
+Is `ProductID` a valid **primary key** : `r pid_nb` == `nrow(products)`.
+
+
+
 
