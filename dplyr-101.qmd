@@ -294,7 +294,7 @@ white_wine |>
                   ordered_result = TRUE)) |>
   summarise(median(`residual sugar`),
             n(), 
-            .by = alc_class)|
+            .by = alc_class)
 ```
 
 ```{r}
@@ -696,11 +696,71 @@ We want a table of countries tha associate a country to the number of products t
 #### Join then summarise
 
 ```{r}
-products |>
+nb_per_country <-
+  products |>
   select(SupplierID) |>
   inner_join(suppliers |>
                select(SupplierID, Country),
              by = join_by(SupplierID)) |>
   summarise("Number of products" = n(), .by = Country)
+nb_per_country
+```
+
+```{r}
+nb_per_country |>
+  ggplot(aes(y=Country, x=`Number of products`)) +
+  geom_col()
+```
+```{r}
+nb_per_country |>
+  arrange(desc(`Number of products`)) |>
+  mutate(idx = 1:n()) |>
+  ggplot(aes(y=idx, x=`Number of products`)) +
+  geom_col(orientation = "y") +
+  scale_y_discrete(labels = nb_per_country |> pull(Country))
+```
+
+### Variations over join
+Categories that are supplied by US suppliers.
+
+```{r}
+cat_usa <-
+  suppliers |>
+  filter(Country == "USA") |>
+  left_join(products, by = join_by(SupplierID)) |>
+  distinct(CategoryID)
+```
+
+Categories that are not supplied by US suppliers.
+NB : negative queries are in generally more difficult to implement.
+
+```{r}
+categories |>
+  anti_join(cat_usa, by = join_by(CategoryID))
+```
+```{r}
+categories |>
+  semi_join(cat_usa, by = join_by(CategoryID))
+## projection, therefore we only keep the columns in categories
+```
+
+Direct calculation
+
+```{r}
+categories |> anti_join(
+  suppliers |>
+  filter(Country == "Germany") |>
+  left_join(products, by = join_by(SupplierID)), 
+  by = join_by(CategoryID)
+)
+```
+```{r}
+categories |> semi_join(
+  suppliers |>
+  filter(Country == "Germany") |>
+  left_join(products, by = join_by(SupplierID)), 
+  by = join_by(CategoryID)
+)
+
 ```
 
